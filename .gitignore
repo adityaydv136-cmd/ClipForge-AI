@@ -1,0 +1,55 @@
+# Virtual Environment
+backend/.venv/
+backend/venv/
+backend/env/
+.venv/
+venv/
+env/
+
+# Python cache & artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+backend/data/projects/*
+!backend/data/projects/.gitkeep
+backend/data/clipforge.db
+backend/clipforge.db
+backend/data/cache/
+backend/data/cookies.txt
+*.mp4
+*.wav
+*.ass
+*.srt
+*.zip
+*.jpg
+*.png
+
+# Node / Next.js
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+.next/
+out/
+.pnp
+.pnp.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & credentials
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+cookies.txt
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.system_generated/
