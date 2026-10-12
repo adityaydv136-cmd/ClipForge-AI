@@ -17,6 +17,9 @@ from .transcriber import transcribe_audio
 from .scene_analyzer import detect_scene_changes, analyze_visual_energy, analyze_visuals
 from .highlight_detector import find_best_highlights
 from .renderer import generate_clip_subtitles, generate_clip_srt, create_project_zip
+from .story_engine import build_story_timeline
+from .timeline_composer import compose_story_clip
+from .quality_controller import validate_clip_export
 
 # Active event queues for SSE subscribers per project: project_id -> set of asyncio.Queue
 _PROJECT_SUBSCRIBERS: Dict[str, List[asyncio.Queue]] = {}
@@ -242,9 +245,13 @@ async def process_project_pipeline(project_id: str):
         if not selected_highlights:
             raise RuntimeError("Could not identify highlight candidates of requested length.")
 
-        # STAGE 5: Rendering shorts
+        # STAGE 5: Rendering shorts (ClipForge 2.0 Narrative Story Architecture)
         total_clips = len(selected_highlights)
         rendered_clips = []
+        editing_personality = project.get("editing_personality", "retention")
+        memes_enabled = bool(project.get("memes_enabled", True))
+        sub_style = project.get("subtitle_style", "hormozi_yellow")
+        subtitles_enabled = bool(project.get("subtitles_enabled", True))
 
         for idx, highlight in enumerate(selected_highlights, 1):
             if is_project_cancelled(project_id):
@@ -253,53 +260,39 @@ async def process_project_pipeline(project_id: str):
 
             render_pct = 75 + int((idx - 1) / total_clips * 20.0)
             clip_dur_label = f"{int(highlight['duration'])}s"
-            await update_stage("rendering_shorts", render_pct, f"Rendering Short {idx} of {total_clips} ({clip_dur_label})...")
+            await update_stage("rendering_shorts", render_pct, f"Structuring & Rendering Short {idx} of {total_clips} ({clip_dur_label} • {editing_personality.title()})...")
 
             clip_id = str(uuid.uuid4())
             clip_mp4 = clips_dir / f"clip_{idx}.mp4"
             clip_thumb = clips_dir / f"clip_{idx}_thumb.jpg"
-            
-            # Subtitles if enabled
-            sub_path = None
-            if project.get("subtitles_enabled", True):
-                temp_ass = project_dir / f"temp_{idx}.ass"
-                temp_srt = clips_dir / f"clip_{idx}.srt"
-                sub_style = project.get("subtitle_style", "hormozi_yellow")
-                
-                # Generate viral creator ASS subtitles with dynamic active-word glow
-                sub_path = generate_clip_subtitles(
-                    clip_start=highlight["start"],
-                    clip_end=highlight["end"],
-                    segments=highlight.get("segments", []),
-                    output_ass_path=temp_ass,
-                    style=sub_style
-                )
+            temp_srt = clips_dir / f"clip_{idx}.srt"
 
-                # Also save standard SRT alongside for optional user export
-                try:
-                    generate_clip_srt(
-                        clip_start=highlight["start"],
-                        clip_end=highlight["end"],
-                        segments=highlight.get("segments", []),
-                        output_srt_path=temp_srt
-                    )
-                except Exception:
-                    pass
+            # 1. Build complete multi-stage story timeline (Hook, Context, Buildup, Flashback, Climax, Payoff)
+            story_timeline = build_story_timeline(
+                candidate=highlight,
+                all_source_segments=segments,
+                target_duration=highlight.get("target_duration", 20.0),
+                personality=editing_personality,
+                memes_enabled=memes_enabled
+            )
 
-            # Render 9:16 vertical short
+            # 2. Render composite short using multi-segment timeline composer with camera zoom, SFX & burned subtitles
             render_success = await loop.run_in_executor(
                 None,
-                lambda: render_vertical_clip(
+                lambda: compose_story_clip(
                     source_video=source_path,
-                    start_time=highlight["start"],
-                    duration=highlight["duration"],
+                    timeline=story_timeline,
                     output_path=clip_mp4,
-                    subtitle_path=sub_path
+                    all_source_segments=segments,
+                    subtitle_style=sub_style,
+                    subtitles_enabled=subtitles_enabled,
+                    aspect_ratio="9:16",
+                    audio_boost=True
                 )
             )
 
             if not render_success or not clip_mp4.exists():
-                # Try fallback without subtitles if subtitle filter encountered font issues
+                # Emergency fallback: standard vertical cut
                 render_success = await loop.run_in_executor(
                     None,
                     lambda: render_vertical_clip(
@@ -312,7 +305,25 @@ async def process_project_pipeline(project_id: str):
                 )
 
             if render_success and clip_mp4.exists():
-                # Generate clip thumbnail
+                # Also save standard SRT alongside for optional user export
+                try:
+                    generate_clip_srt(
+                        clip_start=highlight["start"],
+                        clip_end=highlight["end"],
+                        segments=highlight.get("segments", []),
+                        output_srt_path=temp_srt
+                    )
+                except Exception:
+                    pass
+
+                # 3. Quality Control (QC) Pass
+                qc_report = validate_clip_export(
+                    video_path=clip_mp4,
+                    timeline=story_timeline,
+                    target_duration=highlight.get("target_duration", 20.0)
+                )
+
+                # 4. Generate thumbnail
                 await loop.run_in_executor(
                     None,
                     lambda: generate_thumbnail(clip_mp4, min(1.0, highlight["duration"] / 2.0), clip_thumb)
@@ -324,7 +335,7 @@ async def process_project_pipeline(project_id: str):
                     "title": highlight["title"],
                     "start_time": highlight["start"],
                     "end_time": highlight["end"],
-                    "duration": highlight["duration"],
+                    "duration": qc_report.get("duration", highlight["duration"]),
                     "score": highlight["score"],
                     "summary": highlight.get("text", "")[:120],
                     "file_path": str(clip_mp4),
@@ -333,6 +344,9 @@ async def process_project_pipeline(project_id: str):
                     "hook_tag": highlight.get("hook_tag", "🔥 Viral Hook"),
                     "hook_category": highlight.get("hook_category", "Curiosity Gap"),
                     "retention_3s": highlight.get("retention_3s_pct", 92.0),
+                    "editing_personality": editing_personality,
+                    "story_structure": story_timeline.to_dict(),
+                    "qc_passed": qc_report.get("passed", True),
                 }
                 save_clip(clip_data)
                 rendered_clips.append(clip_data)

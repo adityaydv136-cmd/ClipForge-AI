@@ -18,6 +18,7 @@ backend/data/clipforge.db
 backend/clipforge.db
 backend/data/cache/
 backend/data/cookies.txt
+backend/data/meme_library/
 *.mp4
 *.wav
 *.ass

@@ -142,7 +142,9 @@ async def create_project_from_url(req: ProjectCreateRequest, background_tasks: B
         "duration_option": req.duration_option,
         "num_clips_option": req.num_clips_option,
         "subtitles_enabled": req.subtitles_enabled,
-        "subtitle_style": req.subtitle_style
+        "subtitle_style": req.subtitle_style,
+        "editing_personality": req.editing_personality,
+        "memes_enabled": req.memes_enabled
     }
 
     save_project(project_data)
@@ -160,7 +162,9 @@ async def create_project_from_upload(
     duration_option: str = Form("20"),
     num_clips_option: str = Form("3"),
     subtitles_enabled: bool = Form(True),
-    subtitle_style: str = Form("hormozi_yellow")
+    subtitle_style: str = Form("hormozi_yellow"),
+    editing_personality: str = Form("retention"),
+    memes_enabled: bool = Form(True)
 ):
     """Upload a local video file (MP4, MOV, WebM) directly."""
     allowed_exts = [".mp4", ".mov", ".mkv", ".webm", ".avi"]
@@ -195,7 +199,9 @@ async def create_project_from_upload(
         "duration_option": duration_option,
         "num_clips_option": num_clips_option,
         "subtitles_enabled": subtitles_enabled,
-        "subtitle_style": subtitle_style
+        "subtitle_style": subtitle_style,
+        "editing_personality": editing_personality,
+        "memes_enabled": memes_enabled
     }
 
     save_project(project_data)
@@ -203,6 +209,81 @@ async def create_project_from_upload(
 
     saved = get_project(project_id)
     return saved
+
+@router.get("/memes")
+def list_meme_assets():
+    """Retrieve creator sound effects, reaction audio, and meme assets."""
+    from ..meme_engine import get_meme_library
+    return get_meme_library()
+
+@router.post("/memes/upload")
+async def upload_meme_asset(
+    file: UploadFile = File(...),
+    name: str = Form(...),
+    category: str = Form("custom"),
+    description: str = Form("Custom user uploaded asset")
+):
+    """Allow users to upload custom sound effects or reaction clips they own or have rights to."""
+    from ..meme_engine import MEME_LIBRARY_DIR, METADATA_FILE, get_meme_library
+    clean_name = re.sub(r"[^\w\-_\.]", "_", file.filename or "asset.wav")
+    target_path = MEME_LIBRARY_DIR / clean_name
+    
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded asset file is empty.")
+    
+    target_path.write_bytes(content)
+    
+    library = get_meme_library()
+    new_asset = {
+        "name": name,
+        "category": category,
+        "description": description,
+        "duration": 1.0,
+        "volume": 0.8,
+        "tags": [category, "custom", "user_uploaded"],
+        "file_path": str(target_path),
+        "filename": clean_name
+    }
+    library.append(new_asset)
+    METADATA_FILE.write_text(json.dumps(library, indent=2), encoding="utf-8")
+    return new_asset
+
+@router.get("/personalities")
+def list_personalities():
+    """List 5 AI video editing personalities with descriptions and default badges."""
+    return [
+        {
+            "id": "retention",
+            "name": "Retention-focused (Viral)",
+            "description": "Strongest hook preview, tight pacing, eliminate dead-air, punch-in climax.",
+            "is_default": True
+        },
+        {
+            "id": "funny",
+            "name": "Funny & Meme-focused",
+            "description": "Comedic setup & punchline timing, ironic freezes, and punchy reaction cues.",
+            "is_default": False
+        },
+        {
+            "id": "storytelling",
+            "name": "Cinematic Storytelling",
+            "description": "Narrative structure with smart flashback callbacks to earlier context.",
+            "is_default": False
+        },
+        {
+            "id": "educational",
+            "name": "Educational Insight",
+            "description": "Core thesis hook first, step-by-step breakdown, and key takeaway chime.",
+            "is_default": False
+        },
+        {
+            "id": "natural",
+            "name": "Natural Flow",
+            "description": "Clean, unembellished cuts preserving original footage pacing and nuances.",
+            "is_default": False
+        }
+    ]
 
 @router.get("/projects", response_model=List[dict])
 def list_projects():

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, HttpUrl
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict, Any
 
 class ProjectCreateRequest(BaseModel):
     url: Optional[str] = None
@@ -7,6 +7,8 @@ class ProjectCreateRequest(BaseModel):
     num_clips_option: Literal["3", "5", "10", "auto"] = "3"
     subtitles_enabled: bool = True
     subtitle_style: Literal["hormozi_yellow", "neon_green", "electric_cyan", "sunset_orange", "pink_fuchsia"] = "hormozi_yellow"
+    editing_personality: Literal["retention", "funny", "storytelling", "educational", "natural"] = "retention"
+    memes_enabled: bool = True
 
 class MetadataRequest(BaseModel):
     url: str
@@ -39,6 +41,9 @@ class ClipResponse(BaseModel):
     hook_tag: Optional[str] = "🔥 Viral Hook"
     hook_category: Optional[str] = "Curiosity Gap"
     retention_3s: Optional[float] = 92.0
+    editing_personality: Optional[str] = "retention"
+    story_structure: Optional[Dict[str, Any]] = None
+    qc_passed: Optional[bool] = True
     created_at: str
 
 class ClipEditRequest(BaseModel):
@@ -66,6 +71,8 @@ class ProjectResponse(BaseModel):
     num_clips_option: str
     subtitles_enabled: bool
     subtitle_style: Optional[str] = "hormozi_yellow"
+    editing_personality: Optional[str] = "retention"
+    memes_enabled: Optional[bool] = True
     created_at: str
     updated_at: str
     zip_path: Optional[str] = None

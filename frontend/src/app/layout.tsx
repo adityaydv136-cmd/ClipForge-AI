@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "ClipForge — Turn Long Videos Into Shorts",
   description: "Find the best moments. Generate vertical 9:16 shorts. Download instantly.",
+  verification: {
+    google: "VKEWUuOZvg9oIX6LaDgj_BDdY6gTaQObbVUnijWoMYY",
+  },
 };
 
 export default function RootLayout({

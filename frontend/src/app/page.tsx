@@ -26,6 +26,19 @@ interface Clip {
   hook_tag?: string;
   hook_category?: string;
   retention_3s?: number;
+  editing_personality?: string;
+  story_structure?: {
+    structure?: string;
+    hook?: string;
+    buildup?: string;
+    payoff?: string;
+    flashback_used?: boolean;
+    meme_applied?: boolean;
+    impact_sfx?: boolean;
+    chime_sfx?: boolean;
+    effects?: string;
+  };
+  qc_passed?: boolean;
   created_at: string;
 }
 
@@ -44,10 +57,50 @@ interface Project {
   num_clips_option: string;
   subtitles_enabled: boolean;
   subtitle_style?: string;
+  editing_personality?: string;
+  memes_enabled?: boolean;
   zip_path?: string;
   clips?: Clip[];
   created_at: string;
 }
+
+const EDITING_PERSONALITIES = [
+  {
+    id: "retention",
+    name: "Retention-focused",
+    badge: "Viral Hook Preview",
+    icon: "⚡",
+    desc: "Payoff teaser first, fast setup, tighter cuts, and punch-in climax.",
+  },
+  {
+    id: "funny",
+    name: "Funny & Meme-focused",
+    badge: "Comic Timing",
+    icon: "😂",
+    desc: "Comedy punchlines, freeze cues, and creator reaction impacts.",
+  },
+  {
+    id: "storytelling",
+    name: "Cinematic Storytelling",
+    badge: "Smart Flashback",
+    icon: "🎬",
+    desc: "Rich narrative arc with callbacks to earlier context in the video.",
+  },
+  {
+    id: "educational",
+    name: "Educational Insight",
+    badge: "Core Takeaway",
+    icon: "💡",
+    desc: "Insight thesis first, clear proof breakdown, and takeaway bell.",
+  },
+  {
+    id: "natural",
+    name: "Natural Flow",
+    badge: "Clean Cuts",
+    icon: "🌿",
+    desc: "Preserves organic footage pacing without aggressive reordering.",
+  },
+];
 
 const SUBTITLE_PRESETS = [
   {
@@ -125,6 +178,8 @@ export default function ClipForgeApp() {
   // Configuration options
   const [durationOption, setDurationOption] = useState<"20" | "30" | "both">("20");
   const [numClipsOption, setNumClipsOption] = useState<"3" | "5" | "10" | "auto">("3");
+  const [editingPersonality, setEditingPersonality] = useState<string>("retention");
+  const [memesEnabled, setMemesEnabled] = useState<boolean>(true);
   const [subtitlesEnabled, setSubtitlesEnabled] = useState(true);
   const [subtitleStyle, setSubtitleStyle] = useState<string>("hormozi_yellow");
 
@@ -335,6 +390,8 @@ export default function ClipForgeApp() {
         setActiveStage(proj.stage);
         setProgressPct(proj.progress);
         setStatusMessage(proj.status_message);
+        if (proj.editing_personality) setEditingPersonality(proj.editing_personality);
+        if (typeof proj.memes_enabled === "boolean") setMemesEnabled(proj.memes_enabled);
 
         if (proj.status === "processing") {
           setIsSubmitting(true);
@@ -511,6 +568,8 @@ export default function ClipForgeApp() {
             num_clips_option: numClipsOption,
             subtitles_enabled: subtitlesEnabled,
             subtitle_style: subtitleStyle,
+            editing_personality: editingPersonality,
+            memes_enabled: memesEnabled,
           }),
         });
       } else {
@@ -523,6 +582,8 @@ export default function ClipForgeApp() {
         formData.append("num_clips_option", numClipsOption);
         formData.append("subtitles_enabled", String(subtitlesEnabled));
         formData.append("subtitle_style", subtitleStyle);
+        formData.append("editing_personality", editingPersonality);
+        formData.append("memes_enabled", String(memesEnabled));
 
         res = await fetch(`${API_BASE}/api/upload`, {
           method: "POST",
@@ -868,6 +929,70 @@ export default function ClipForgeApp() {
           </div>
         </div>
 
+        {/* ClipForge 2.0 - AI Editing Personality Selector */}
+        <div className="personality-section">
+          <div className="personality-header-row">
+            <label className="personality-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              Editing Personality
+            </label>
+            <span style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+              5 retention-engineered story workflows
+            </span>
+          </div>
+
+          <div className="personality-grid">
+            {EDITING_PERSONALITIES.map((p) => {
+              const isActive = editingPersonality === p.id;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={`personality-card ${isActive ? "active" : ""}`}
+                  onClick={() => !isSubmitting && setEditingPersonality(p.id)}
+                  disabled={isSubmitting}
+                >
+                  <div className="personality-top-row">
+                    <span className="personality-icon">{p.icon}</span>
+                    <span className="personality-badge">{p.badge}</span>
+                  </div>
+                  <div className="personality-name">{p.name}</div>
+                  <div className="personality-desc">{p.desc}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Smart Reactions & SFX Engine Switch */}
+        <div
+          className="meme-engine-row"
+          onClick={() => !isSubmitting && setMemesEnabled(!memesEnabled)}
+        >
+          <div className="meme-engine-info">
+            <svg className="meme-engine-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            </svg>
+            <div>
+              <div className="meme-engine-title">Smart Reaction & SFX Engine</div>
+              <div className="meme-engine-desc">
+                Contextually mixes royalty-free impacts, whooshes, awkward crickets, and punchlines
+              </div>
+            </div>
+          </div>
+          <label className="switch" onClick={(e) => e.stopPropagation()}>
+            <input
+              type="checkbox"
+              checked={memesEnabled}
+              onChange={(e) => setMemesEnabled(e.target.checked)}
+              disabled={isSubmitting}
+            />
+            <span className="slider" />
+          </label>
+        </div>
+
         {/* Subtitles Row */}
         <div
           className="subtitle-row"
@@ -1123,6 +1248,16 @@ export default function ClipForgeApp() {
 
                   <div className="clip-card-body">
                     <div className="clip-badges-row" style={{ flexWrap: "wrap", gap: "6px" }}>
+                      {clip.editing_personality && (
+                        <span className="badge-personality">
+                          ⚡ {clip.editing_personality.toUpperCase()}
+                        </span>
+                      )}
+                      {clip.qc_passed && (
+                        <span className="badge-qc">
+                          ✓ QC PASS
+                        </span>
+                      )}
                       <span className="badge-3s-hook" title="Predicted viewer retention for first 3 seconds">
                         {clip.hook_tag || "🔥 Curiosity Gap"} ({Math.round(clip.retention_3s || 92)}% 3s Hook)
                       </span>
@@ -1135,6 +1270,24 @@ export default function ClipForgeApp() {
                         {Math.round(clip.score)}% Score
                       </span>
                     </div>
+
+                    {/* ClipForge 2.0 Story Arc Architecture */}
+                    {clip.story_structure?.structure && (
+                      <div className="story-arc-banner">
+                        <div className="story-arc-title">
+                          <span>⚡ Narrative Arc</span>
+                          {clip.story_structure.meme_applied && (
+                            <span style={{ color: "var(--accent-amber)", fontSize: 10 }}>• SFX Cue</span>
+                          )}
+                          {clip.story_structure.flashback_used && (
+                            <span style={{ color: "#38bdf8", fontSize: 10 }}>• [ Flashback ]</span>
+                          )}
+                        </div>
+                        <div className="story-arc-steps">
+                          {clip.story_structure.structure}
+                        </div>
+                      </div>
+                    )}
 
                     <h3 className="clip-title" title={clip.title}>
                       {clip.title}
