@@ -1,7 +1,10 @@
 # ClipForge — AI Video-To-Shorts Web Application
 
-> **Turn Long Videos Into Shorts.**  
-> Find the best moments automatically. Generate vertical 9:16 shorts with subtitles. Preview and download instantly.  
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/adityaydv136-cmd/ClipForge-AI)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-ClipForge--AI-8b5cf6?logo=github)](https://github.com/adityaydv136-cmd/ClipForge-AI)
+
+> **Turn Long Videos Into Viral Shorts.**  
+> Find the best moments automatically. Hook viewers in the first 3 seconds. Generate vertical 9:16 shorts with subtitles. Preview, edit, and download instantly.  
 > **100% Free & Open-Source — Zero Paid AI API Keys Required.**
 
 ---
@@ -41,9 +44,21 @@ ClipForge is architected into 4 clean, decoupled layers:
    - Direct video file upload dropzone for creator-owned footage.
    - Selectors for **20 seconds**, **30 seconds**, or **Both**.
    - Clip count selection (**3**, **5**, **10**, or **Auto**).
-   - "Add subtitles" toggle switch.
+   - "Add subtitles" toggle switch with viral preset styles.
 
-2. **Automated Highlight Detection (Zero-Cost Local AI)**:
+2. **3-Second Viral Hook & Retention Engine**:
+   - **First-3-Seconds Analysis**: Scans the crucial 3-second opening window for curiosity gaps, shock triggers, questions, and high vocal velocity.
+   - **Opening Silence Elimination**: Snaps the clip start timestamp directly to the exact millisecond speech begins (within 0.06s), eliminating awkward silence and immediately hooking viewers before they scroll.
+   - **Predicted 3s Retention Badges**: Displays hook classifications (`🔥 Curiosity Gap`, `⚡ Shock Value`, `❓ Question Trap`, `🎯 High Stakes`) and retention rate predictions (e.g. 96% 3s Hook).
+
+3. **In-App Clip Editor & Refinement Suite**:
+   - **Interactive Trimmer**: Adjust start and end times with instant -1s / +1s micro-buttons or precision sliders.
+   - **Multi-Aspect Ratio Framing**: Export in **9:16 Vertical** (Shorts/Reels/TikTok), **1:1 Square** (Feed), or **16:9 Landscape** (Highlights).
+   - **Audio Loudness & Vocal Clarity EQ**: Professional EBU R128 loudness normalization and volume booster via FFmpeg so mobile dialogue pops.
+   - **Caption Customization**: Choose between Viral Gold (Hormozi), Cyber Lime, Electric Cyan, Sunset Flame, and Neon Pink with dynamic positioning (Bottom safe zone, Center hero focus, Top banner) and font sizing.
+   - **Instant Re-rendering**: Re-render individual clips on the fly and immediately preview them in the browser.
+
+4. **Automated Highlight Detection (Zero-Cost Local AI)**:
    - **Local Speech Transcription**: Uses `faster-whisper` (`base` model quantized to `int8`) for rapid, accurate CPU/GPU speech-to-text with word-level timestamps.
    - **Hook & Retention Scoring**: Analyzes opening sentences for hook triggers, intrigue, questions, emotional resonance, and thought completeness.
    - **Visual Scene Cuts**: Uses OpenCV color histogram correlation to identify scene cuts and avoid awkward transitions mid-cut.
